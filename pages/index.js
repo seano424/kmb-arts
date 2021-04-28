@@ -1,7 +1,39 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import Head from "next/head";
+import styles from "../styles/Home.module.css";
+import { getClient } from "../lib/sanity";
+import Link from "next/link";
 
-export default function Home() {
+const getUniquePosts = (posts) => {
+  const slugs = new Set();
+  return posts.filter((post) => {
+    if (slugs.has(post.slug)) {
+      return false;
+    } else {
+      slugs.add(post.slug);
+      return true;
+    }
+  });
+};
+
+export async function getAllPostsForHome(preview) {
+  const results = await getClient(preview).fetch(
+    `*[_type == "post"] | order(publishedAt desc)`
+  );
+  return getUniquePosts(results);
+}
+
+export async function getStaticProps() {
+  const posts = await getAllPostsForHome();
+
+  return {
+    props: {
+      posts,
+    }, // will be passed to the page component as props
+  };
+}
+
+export default function Home({ posts }) {
+  console.log(posts);
   return (
     <div className={styles.container}>
       <Head>
@@ -15,38 +47,24 @@ export default function Home() {
         </h1>
 
         <p className={styles.description}>
-          Get started by editing{' '}
+          Get started by editing{" "}
           <code className={styles.code}>pages/index.js</code>
         </p>
 
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          {posts &&
+            posts.map((post) => (
+              <Link key={post._id} href={`/artworks/${post.slug.current}`}>
+                <div className={styles.card}>
+                  <a>
+                    <h3>{post.title} &rarr;</h3>
+                    <p>
+                      Find in-depth information about Next.js features and API.
+                    </p>
+                  </a>
+                </div>
+              </Link>
+            ))}
         </div>
       </main>
 
@@ -56,10 +74,10 @@ export default function Home() {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Powered by{' '}
+          Powered by
           <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
         </a>
       </footer>
     </div>
-  )
+  );
 }
